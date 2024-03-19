@@ -4,7 +4,8 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using System.Diagnostics;
 using SeleniumExtras.WaitHelpers;
-
+using System;
+using System.Collections.Generic;
 
 namespace LogInTest
 {
@@ -12,6 +13,7 @@ namespace LogInTest
     {
         private IWebDriver driver;
 
+        [SetUp]
         public void StartSetup()
         {
             driver = new ChromeDriver();
@@ -23,7 +25,7 @@ namespace LogInTest
         {
             driver.Navigate().GoToUrl("https://app.digiklase.lt");
             IWebElement email = driver.FindElement(By.Id("email"));
-            email.SendKeys("demouser@digiklase.lt");
+            email.SendKeys("smolskijt@gmail.com");
 
             IWebElement password = driver.FindElement(By.Id("password"));
             password.SendKeys("$q&*9gqxKh6n3UhZxewd");
@@ -33,23 +35,36 @@ namespace LogInTest
             loginButton.Click();
         }
         [Test]
-        public void PageLoaderTimeTest()
+        public void PageLoadPerformanceTest()
         {
-            Stopwatch stopwatch = new Stopwatch();
-            driver.Navigate().GoToUrl("https://app.digiklase.lt");
-            stopwatch.Start();
+            long totalLoadTime = 0;
+            int iterations = 5; 
 
-            new WebDriverWait(driver, TimeSpan.FromSeconds(10)).Until(
-                ExpectedConditions.InvisibilityOfElementLocated(By.Id("loader-id")));
+            for (int i = 0; i < iterations; i++)
+            {
+                driver.Navigate().GoToUrl("https://app.digiklase.lt");
+                WaitForPageLoadComplete(driver);
 
-            stopwatch.Stop();
+                var jsExecutor = (IJavaScriptExecutor)driver;
+                var performanceTiming = jsExecutor.ExecuteScript("return window.performance.timing") as Dictionary<string, object>;
 
-            long pageLoadTime = stopwatch.ElapsedMilliseconds;
-            Console.WriteLine("Puslapio užkrovimo laikas: " + pageLoadTime + "ms");
+                long navigationStart = Convert.ToInt64(performanceTiming["navigationStart"]);
+                long loadEventEnd = Convert.ToInt64(performanceTiming["loadEventEnd"]);
+                long pageLoadTime = loadEventEnd - navigationStart;
 
-            // Call Assert.IsTrue without assignment
-            Assert.That(pageLoadTime, Is.LessThan(20000), "Puslapis užsikrovė per ilgai.");
+                totalLoadTime += pageLoadTime;
+            }
 
+            long averageLoadTime = totalLoadTime / iterations;
+            Console.WriteLine($"Average Page Load Time: {averageLoadTime} ms");
+
+            Assert.That(averageLoadTime, Is.LessThan(5000), "Average page load time is longer than expected."); 
+        }
+
+        public void WaitForPageLoadComplete(IWebDriver driver, int timeoutSec = 10)
+        {
+            var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(timeoutSec));
+            wait.Until(d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
         }
         [TearDown]
         public void Teardown()

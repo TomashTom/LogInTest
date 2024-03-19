@@ -15,10 +15,10 @@ namespace LogInTest.Tests
         public void LogInTest_SuccessTest()
         {
             var loginTest = new LogInTests();
-            loginTest.StartSetup(); // Set up the WebDriver
-            loginTest.LogInTest_Success(); // Run the login process
-            loginTest.PageLoaderTimeTest();
-            loginTest.Teardown(); // Quit the WebDriver
+            loginTest.StartSetup(); 
+            loginTest.LogInTest_Success(); 
+            loginTest.PageLoadPerformanceTest();
+            loginTest.Teardown(); 
         }
     }
 }
